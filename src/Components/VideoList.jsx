@@ -32,7 +32,7 @@ function VideoList() {
         {
           videoId,
         },
-        { withCredentials: "include" },
+        { withCredentials: "include" }
       );
       toast.success(t.alert.success.video.audioExtracted);
       extractedAudioTrue(videoId);
@@ -87,7 +87,8 @@ function VideoList() {
                     variant="contained"
                     size="small"
                   >
-                    Resize
+                    Resize{" "}
+                    {video.resizes && <span className="ml-1 bg-white rounded-full w-4  text-center !text-xs text-gray-700 font-semibold">{Object.keys(video.resizes).length}</span>}
                   </Button>
                   {video.extractedAudio ? (
                     <Button
