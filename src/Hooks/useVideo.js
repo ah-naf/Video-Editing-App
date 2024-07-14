@@ -10,18 +10,35 @@ const useVideo = (videoId) => {
   const [loading, setLoading] = useState(true); // loading for fetching the videos
   const [video, setVideo] = useState({}); // selected video for the modal
 
-  const deleteVideo = async(videoId) => {
+  const deleteVideo = async (videoId) => {
     const allVideos = [...videos];
-    try{
-      const filteredVideos = allVideos.filter(video => video.videoId !== videoId);
-      setVideos(filteredVideos)
-      await axios.delete(`http://localhost:8060/api/video?videoId=${videoId}`, {withCredentials: 'include'})
-      toast.success('Video deleted successfully!')
-    }catch(e) {
-      toast.error('Failed to delete video. Please try again later.')
-      setVideos(allVideos)
+    try {
+      const filteredVideos = allVideos.filter(
+        (video) => video.videoId !== videoId
+      );
+      setVideos(filteredVideos);
+      await axios.delete(`http://localhost:8060/api/video?videoId=${videoId}`, {
+        withCredentials: "include",
+      });
+      toast.success("Video deleted successfully!");
+    } catch (e) {
+      toast.error("Failed to delete video. Please try again later.");
+      setVideos(allVideos);
     }
-  }
+  };
+
+  const deleteResize = async (dimension) => {
+    try {
+      await axios.delete(
+        `http://localhost:8060/api/video/resize-delete?videoId=${videoId}&dimension=${dimension}`,
+        { withCredentials: "include" }
+      );
+      toast.success("The resized video is deleted successfully");
+      fetchVideos();
+    } catch (error) {
+      toast.error(t.alert.error.default);
+    }
+  };
 
   const fetchVideos = async () => {
     setLoading(true);
@@ -85,7 +102,8 @@ const useVideo = (videoId) => {
     video,
     addResize,
     extractedAudioTrue,
-    deleteVideo
+    deleteVideo,
+    deleteResize,
   };
 };
 

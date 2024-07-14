@@ -20,7 +20,7 @@ export default function ResizeModal({ videoId, handleClose }) {
   const [resizeLoading, setResizeLoading] = useState(false);
   const [width, setWidth] = useState("");
   const [height, setHeight] = useState("");
-  const { video, addResize, fetchVideos } = useVideo(videoId);
+  const { video, addResize, fetchVideos, deleteResize } = useVideo(videoId);
 
   const onFormSubmit = async (e) => {
     e.preventDefault();
@@ -123,7 +123,12 @@ export default function ResizeModal({ videoId, handleClose }) {
               >
                 Download <BsDownload size={15} className="ml-1" />
               </Button>
-              <Button variant="contained" color="error" size="small">
+              <Button
+                variant="contained"
+                color="error"
+                size="small"
+                onClick={() => deleteResize(dimensions)}
+              >
                 Delete <BiTrash size={15} className="ml-1" />
               </Button>
             </div>
