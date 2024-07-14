@@ -11,6 +11,10 @@ import toast from "react-hot-toast";
 import axios from "axios";
 import t from "../assets/util";
 import { IoReload } from "react-icons/io5";
+import { FiDelete } from "react-icons/fi";
+import { BiTrash } from "react-icons/bi";
+import { FaDownLong } from "react-icons/fa6";
+import { BsDownload } from "react-icons/bs";
 
 export default function ResizeModal({ videoId, handleClose }) {
   const [resizeLoading, setResizeLoading] = useState(false);
@@ -110,14 +114,19 @@ export default function ResizeModal({ videoId, handleClose }) {
               Processing...
             </span>
           ) : (
-            <Button variant="contained" color="success">
-              <a
-                className="button button-blue button-small"
+            <div className="space-x-2">
+              <Button
                 href={`http://localhost:8060/get-video-asset?videoId=${videoId}&type=resize&dimensions=${dimensions}`}
+                variant="contained"
+                color="success"
+                size="small"
               >
-                Download
-              </a>
-            </Button>
+                Download <BsDownload size={15} className="ml-1" />
+              </Button>
+              <Button variant="contained" color="error" size="small">
+                Delete <BiTrash size={15} className="ml-1" />
+              </Button>
+            </div>
           )}
         </div>
       );
