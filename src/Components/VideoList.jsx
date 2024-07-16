@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import t from "../assets/util";
 import { IoMdClose } from "react-icons/io";
 import ResizeModal from "./ResizeModal";
+import CropModal from "./CropModal";
 
 function VideoList() {
   const {
@@ -17,6 +18,7 @@ function VideoList() {
   } = useVideo();
   const [extractAudioLoading, setExtractAudioLoading] = useState(null);
   const [resizeModal, setResizeModal] = useState(null);
+  const [cropModal, setCropModal] = useState(null);
 
   useEffect(() => {
     fetchVideos();
@@ -88,7 +90,11 @@ function VideoList() {
                     size="small"
                   >
                     Resize{" "}
-                    {video.resizes && <span className="ml-1 bg-white rounded-full w-4  text-center !text-xs text-gray-700 font-semibold">{Object.keys(video.resizes).length}</span>}
+                    {video.resizes && (
+                      <span className="ml-1 bg-white rounded-full w-4  text-center !text-xs text-gray-700 font-semibold">
+                        {Object.keys(video.resizes).length}
+                      </span>
+                    )}
                   </Button>
                   {video.extractedAudio ? (
                     <Button
@@ -116,7 +122,11 @@ function VideoList() {
                       )}
                     </Button>
                   )}
-                  <Button variant="contained" size="small">
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => setCropModal(video.videoId)}
+                  >
                     Crop
                   </Button>
                   <Button variant="contained" size="small">
@@ -145,6 +155,7 @@ function VideoList() {
         videoId={resizeModal}
         handleClose={() => setResizeModal(null)}
       />
+      <CropModal videoId={cropModal} handleClose={() => setCropModal(null)} />
     </>
   );
 }
