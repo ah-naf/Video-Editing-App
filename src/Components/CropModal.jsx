@@ -55,7 +55,6 @@ function CropModal({ videoId, handleClose }) {
   const [totalTime, setTotalTime] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [isBuffering, setIsBuffering] = useState(true);
-  const [value, setValue] = useState([0, 0, 0]);
 
   function formatTime(seconds) {
     const h = Math.floor(seconds / 3600);
@@ -70,26 +69,12 @@ function CropModal({ videoId, handleClose }) {
     return `${m}:${s.toString().padStart(2, "0")}`;
   }
 
-  const handleChange = (event, newValue, activeThumb) => {
-    if (activeThumb === 0) {
-      newValue[0] = Math.min(newValue[0], value[1]);
-    } else if (activeThumb === 2) {
-      newValue[2] = Math.max(newValue[2], value[1]);
-    } else {
-      newValue[1] = Math.max(newValue[0], Math.min(newValue[1], newValue[2]));
-    }
-
-    setValue(newValue);
-    if (ref.current && activeThumb === 1 && newValue[1] !== currentTime) {
-      ref.current.seekTo(newValue[1], "seconds");
+  const handleSliderChange = (event, newValue) => {
+    setCurrentTime(newValue);
+    if (ref.current) {
+      ref.current.seekTo(newValue, "seconds");
     }
   };
-
-  useEffect(() => {
-    if (value[1] >= value[2]) {
-      setPlaying(false);
-    }
-  }, [value]);
 
   useEffect(() => {
     setPlaying(true);
@@ -112,19 +97,17 @@ function CropModal({ videoId, handleClose }) {
       <DialogContent className="mt-4">
         <div className="relative">
           <ReactPlayer
-            key={videoId} // Adding key prop here
+            key={videoId}
             url={`http://localhost:8060/get-video-asset?type=original&videoId=${videoId}`}
             ref={ref}
+            playing={playing}
             onReady={() => setIsBuffering(false)}
             onStart={() => setIsBuffering(false)}
-            playing={playing}
             onProgress={(e) => {
               setCurrentTime(e.playedSeconds);
-              setValue((prev) => [prev[0], parseInt(e.playedSeconds), prev[2]]);
             }}
             onDuration={(e) => {
               setTotalTime(e);
-              setValue([0, 0, parseInt(e)]);
             }}
             onBuffer={() => setIsBuffering(true)}
             onBufferEnd={() => setIsBuffering(false)}
@@ -137,43 +120,28 @@ function CropModal({ videoId, handleClose }) {
             </div>
           )}
 
-          <div className="relative full mt-4">
+          <div className="relative full mt-8">
+            <div
+              className="absolute -top-[35px] transform translate-y-1/2 bg-gray-600 text-white text-xs px-2 py-1 rounded"
+              style={{
+                left: `${(currentTime / totalTime) * 100 - 2.3}%`,
+              }}
+            >
+              {formatTime(currentTime)}
+            </div>
             <CustomSlider
-              value={value}
-              onChange={handleChange}
+              value={currentTime}
+              onChange={handleSliderChange}
               max={totalTime}
+              aria-labelledby="continuous-slider"
             />
-            {/* Track between value[0] and value[2] */}
-            <div
-              className="absolute top-1/2 transform -translate-y-full bg-orange-500 h-[5px] z-0 rounded"
-              style={{
-                left: `${(value[0] / totalTime) * 100 + 1.4}%`,
-                width: `${((value[1] - value[0]) / totalTime) * 100 - 2.9}%`,
-              }}
-            />
-            <div
-              className="absolute -bottom-[13px] transform translate-y-1/2 bg-gray-600 text-white text-xs px-2 py-1 rounded"
-              style={{
-                left: `${(value[0] / totalTime) * 100 - 2.3}%`,
-              }}
-            >
-              {formatTime(value[0])}
-            </div>
-            <div
-              className="absolute -bottom-[13px] transform translate-y-1/2 bg-gray-600 text-white text-xs px-2 py-1 rounded"
-              style={{
-                left: `${(value[2] / totalTime) * 100 - 3.3}%`,
-              }}
-            >
-              {formatTime(value[2])}
-            </div>
           </div>
         </div>
         <div className="flex gap-4 justify-center">
           <IconButton
             onClick={() => {
               ref.current.seekTo(
-                value[1] - 5 >= value[0] ? value[1] - 5 : value[0],
+                currentTime - 5 >= 0 ? currentTime - 5 : 0,
                 "seconds"
               );
             }}
@@ -194,7 +162,7 @@ function CropModal({ videoId, handleClose }) {
           <IconButton
             onClick={() => {
               ref.current.seekTo(
-                value[1] + 5 <= value[2] ? value[1] + 5 : value[2],
+                currentTime + 5 <= totalTime ? currentTime + 5 : totalTime,
                 "seconds"
               );
             }}
