@@ -1,3 +1,4 @@
+import React, { useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -5,7 +6,6 @@ import {
   IconButton,
   Slider,
 } from "@mui/material";
-import React, { useEffect, useRef, useState } from "react";
 import { CgClose } from "react-icons/cg";
 import useVideo from "../Hooks/useVideo";
 import ReactPlayer from "react-player";
@@ -17,6 +17,7 @@ import {
   FaSpinner,
 } from "react-icons/fa";
 import { styled } from "@mui/material/styles";
+import { Rnd } from "react-rnd";
 
 const CustomSlider = styled(Slider)(({ theme }) => ({
   color: "#3a8589",
@@ -51,10 +52,19 @@ const CustomSlider = styled(Slider)(({ theme }) => ({
 function CropModal({ videoId, handleClose }) {
   const { video } = useVideo(videoId);
   const ref = useRef(null);
+  const containerRef = useRef(null);
   const [playing, setPlaying] = useState(true);
   const [totalTime, setTotalTime] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [isBuffering, setIsBuffering] = useState(true);
+  const [seeking, setSeeking] = useState(false);
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [cropValue, setCropValue] = useState({
+    x: 100,
+    y: 100,
+    width: 200,
+    height: 200,
+  });
 
   function formatTime(seconds) {
     const h = Math.floor(seconds / 3600);
@@ -71,14 +81,40 @@ function CropModal({ videoId, handleClose }) {
 
   const handleSliderChange = (event, newValue) => {
     setCurrentTime(newValue);
+    setSeeking(true);
+  };
+
+  const handleSliderChangeCommitted = (event, newValue) => {
+    setSeeking(false);
     if (ref.current) {
       ref.current.seekTo(newValue, "seconds");
     }
   };
 
+  const scaleCropValue = () => {
+    const playerWidth = containerRef.current.offsetWidth; // Width of the ReactPlayer container
+    const playerHeight = containerRef.current.offsetHeight; // Height of the ReactPlayer container
+    const widthScale = video.dimensions.width / playerWidth;
+    const heightScale = video.dimensions.height / playerHeight;
+
+    return {
+      x: cropValue.x * widthScale,
+      y: cropValue.y * heightScale,
+      width: cropValue.width * widthScale,
+      height: cropValue.height * heightScale,
+    };
+  };
+
   useEffect(() => {
     setPlaying(true);
   }, [videoId]);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      const scaledValues = scaleCropValue();
+      console.log(scaledValues);
+    }
+  }, [cropValue, containerRef]);
 
   return (
     <Dialog
@@ -96,29 +132,59 @@ function CropModal({ videoId, handleClose }) {
       </DialogTitle>
       <DialogContent className="mt-4">
         <div className="relative">
-          <ReactPlayer
-            key={videoId}
-            url={`http://localhost:8060/get-video-asset?type=original&videoId=${videoId}`}
-            ref={ref}
-            playing={playing}
-            onReady={() => setIsBuffering(false)}
-            onStart={() => setIsBuffering(false)}
-            onProgress={(e) => {
-              setCurrentTime(e.playedSeconds);
-            }}
-            onDuration={(e) => {
-              setTotalTime(e);
-            }}
-            onBuffer={() => setIsBuffering(true)}
-            onBufferEnd={() => setIsBuffering(false)}
-            className="!w-full !h-[400px]"
-          />
+          <div className="relative w-full h-[400px]" ref={containerRef}>
+            <ReactPlayer
+              key={videoId}
+              url={`http://localhost:8060/get-video-asset?type=original&videoId=${videoId}`}
+              ref={ref}
+              playing={playing}
+              onReady={() => {
+                setIsBuffering(false);
+                setVideoLoaded(true);
+              }}
+              onStart={() => setIsBuffering(false)}
+              onProgress={(e) => {
+                if (!seeking) {
+                  setCurrentTime(e.playedSeconds);
+                }
+              }}
+              onDuration={(e) => {
+                setTotalTime(e);
+              }}
+              onBuffer={() => setIsBuffering(true)}
+              onBufferEnd={() => setIsBuffering(false)}
+              className="!w-full !h-full"
+            />
 
-          {isBuffering && (
-            <div className="absolute h-[400px] top-0 inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
-              <FaSpinner className="text-white text-4xl animate-spin" />
-            </div>
-          )}
+            {isBuffering && (
+              <div className="absolute top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center z-10">
+                <FaSpinner className="text-white text-4xl animate-spin" />
+              </div>
+            )}
+
+            {videoLoaded && (
+              <Rnd
+                default={cropValue}
+                onDragStop={(e, d) =>
+                  setCropValue({ ...cropValue, x: d.x, y: d.y })
+                }
+                onResizeStop={(e, direction, ref, delta, position) => {
+                  setCropValue({
+                    ...cropValue,
+                    x: position.x,
+                    y: position.y,
+                    width: parseInt(ref.style.width, 10),
+                    height: parseInt(ref.style.height, 10),
+                  });
+                }}
+                bounds="parent"
+                style={{
+                  border: "2px solid rgba(255, 255, 255, 0.8)",
+                  background: "rgba(0, 0, 0, 0.3)",
+                }}
+              />
+            )}
+          </div>
 
           <div className="relative full mt-8">
             <div
@@ -132,6 +198,7 @@ function CropModal({ videoId, handleClose }) {
             <CustomSlider
               value={currentTime}
               onChange={handleSliderChange}
+              onChangeCommitted={handleSliderChangeCommitted}
               max={totalTime}
               aria-labelledby="continuous-slider"
             />
@@ -140,10 +207,9 @@ function CropModal({ videoId, handleClose }) {
         <div className="flex gap-4 justify-center">
           <IconButton
             onClick={() => {
-              ref.current.seekTo(
-                currentTime - 5 >= 0 ? currentTime - 5 : 0,
-                "seconds"
-              );
+              const newTime = currentTime - 5 >= 0 ? currentTime - 5 : 0;
+              setCurrentTime(newTime);
+              ref.current.seekTo(newTime, "seconds");
             }}
           >
             <FaBackward size={25} className="m-1" />
@@ -161,10 +227,10 @@ function CropModal({ videoId, handleClose }) {
           </IconButton>
           <IconButton
             onClick={() => {
-              ref.current.seekTo(
-                currentTime + 5 <= totalTime ? currentTime + 5 : totalTime,
-                "seconds"
-              );
+              const newTime =
+                currentTime + 5 <= totalTime ? currentTime + 5 : totalTime;
+              setCurrentTime(newTime);
+              ref.current.seekTo(newTime, "seconds");
             }}
           >
             <FaForward size={25} className="m-1" />
