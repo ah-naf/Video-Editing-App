@@ -9,6 +9,8 @@ const useVideo = (videoId) => {
   const { videos, setVideos } = useContext(AppContext); // the complete list of videos
   const [loading, setLoading] = useState(true); // loading for fetching the videos
   const [video, setVideo] = useState({}); // selected video for the modal
+  const [cropSuccess, setCropSuccess] = useState(false);
+  const [isCropping, setIsCropping] = useState(false);
 
   const deleteVideo = async (videoId) => {
     const allVideos = [...videos];
@@ -24,6 +26,28 @@ const useVideo = (videoId) => {
     } catch (e) {
       toast.error("Failed to delete video. Please try again later.");
       setVideos(allVideos);
+    }
+  };
+
+  const cropVideo = async (option) => {
+    try {
+      setIsCropping(true);
+      setCropSuccess(false);
+      await axios.put(
+        "http://localhost:8060/api/video/crop",
+        {
+          videoId,
+          ...option,
+        },
+        { withCredentials: "include" }
+      );
+
+      toast.success("Video cropped successfully");
+      setCropSuccess(true);
+    } catch (error) {
+      toast.error("Failed to crop the video. Please try again later.");
+    } finally {
+      setIsCropping(false);
     }
   };
 
@@ -61,6 +85,8 @@ const useVideo = (videoId) => {
     } else {
       setVideo({});
     }
+    setCropSuccess(false);
+    setIsCropping(false);
   }, [videoId, videos]);
 
   const addResize = (width, height) => {
@@ -104,6 +130,11 @@ const useVideo = (videoId) => {
     extractedAudioTrue,
     deleteVideo,
     deleteResize,
+    cropVideo,
+    cropSuccess,
+    setCropSuccess,
+    isCropping,
+    setIsCropping,
   };
 };
 

@@ -5,6 +5,8 @@ import {
   DialogTitle,
   IconButton,
   Slider,
+  Button,
+  CircularProgress,
 } from "@mui/material";
 import { CgClose } from "react-icons/cg";
 import useVideo from "../Hooks/useVideo";
@@ -50,7 +52,8 @@ const CustomSlider = styled(Slider)(({ theme }) => ({
 }));
 
 function CropModal({ videoId, handleClose }) {
-  const { video } = useVideo(videoId);
+  const { video, cropVideo, cropSuccess, setCropSuccess, isCropping } =
+    useVideo(videoId);
   const ref = useRef(null);
   const containerRef = useRef(null);
   const [playing, setPlaying] = useState(true);
@@ -105,6 +108,15 @@ function CropModal({ videoId, handleClose }) {
     };
   };
 
+  const handleCrop = async () => {
+    const scaledValues = scaleCropValue();
+    try {
+      await cropVideo(scaledValues);
+    } catch (error) {
+      console.error("Crop failed", error);
+    }
+  };
+
   useEffect(() => {
     setPlaying(true);
   }, [videoId]);
@@ -132,6 +144,9 @@ function CropModal({ videoId, handleClose }) {
       </DialogTitle>
       <DialogContent className="mt-4">
         <div className="relative">
+          <p className="mb-2 text-gray-700 font-medium">
+            Drag and resize the box to crop the video.
+          </p>
           <div className="relative w-full h-[400px]" ref={containerRef}>
             <ReactPlayer
               key={videoId}
@@ -235,6 +250,39 @@ function CropModal({ videoId, handleClose }) {
           >
             <FaForward size={25} className="m-1" />
           </IconButton>
+        </div>
+        <div className="flex justify-end mt-4 gap-4">
+          {cropSuccess ? (
+            <>
+              <Button
+                variant="contained"
+                className="!bg-red-500"
+                onClick={() => setCropSuccess(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                href={`http://localhost:8060/get-video-asset?videoId=${videoId}&type=crop`}
+                variant="contained"
+                className="!bg-green-500"
+              >
+                Download
+              </Button>
+            </>
+          ) : (
+            <Button
+              className={isCropping ? "pointer-events-none" : ""}
+              variant="contained"
+              color="primary"
+              onClick={handleCrop}
+            >
+              {!isCropping ? (
+                "Crop"
+              ) : (
+                <CircularProgress size={20} className="!text-white" />
+              )}
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
