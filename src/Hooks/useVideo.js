@@ -29,6 +29,29 @@ const useVideo = (videoId) => {
     }
   };
 
+  const addFormat = (format) => {
+    // Find the video in videos and add the resize to it, with processing set to true
+    const updatedVideos = videos.map((video) => {
+      if (video.videoId === videoId) {
+        if (video.format) {
+          return toast.error("Selected format is already exist.");
+        } else {
+          return {
+            ...video,
+            formats: {
+              ...video.formats,
+              [format]: {
+                processing: true,
+              },
+            },
+          };
+        }
+      }
+      return video;
+    });
+    setVideos(updatedVideos);
+  };
+
   const cropVideo = async (option) => {
     try {
       setIsCropping(true);
@@ -135,6 +158,7 @@ const useVideo = (videoId) => {
     setCropSuccess,
     isCropping,
     setIsCropping,
+    addFormat,
   };
 };
 

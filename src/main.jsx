@@ -10,20 +10,20 @@ function Main() {
   const [section, setSection] = useState("");
   const [videos, setVideos] = useState([]);
   return (
-    <React.StrictMode>
-      <AppContext.Provider
-        value={{
-          videos,
-          setVideos,
-          loggedIn,
-          setLoggedIn,
-          section,
-          setSection,
-        }}
-      >
+    <AppContext.Provider
+      value={{
+        videos,
+        setVideos,
+        loggedIn,
+        setLoggedIn,
+        section,
+        setSection,
+      }}
+    >
+      <React.StrictMode>
         <App />
-      </AppContext.Provider>
-    </React.StrictMode>
+      </React.StrictMode>
+    </AppContext.Provider>
   );
 }
 

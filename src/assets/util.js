@@ -10,7 +10,7 @@ const t = {
     error: {
       auth: {
         badLoginInfo: "Username or password is incorrect.",
-        badRegisterInfo: "Username already exist!"
+        badRegisterInfo: "Username already exist!",
       },
       video: {
         resize: {
@@ -34,6 +34,8 @@ const t = {
           "The audio was extracted successfully! You can now download the audio file.",
         resized:
           "The resize process has successfully started! This process could take up to a few hours. Please check back later.",
+        format:
+          "The change format process has successfully started! Please check back later.",
       },
       user: {
         updated: "Your info was updated successfully!",

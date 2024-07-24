@@ -121,13 +121,6 @@ function CropModal({ videoId, handleClose }) {
     setPlaying(true);
   }, [videoId]);
 
-  useEffect(() => {
-    if (containerRef.current) {
-      const scaledValues = scaleCropValue();
-      console.log(scaledValues);
-    }
-  }, [cropValue, containerRef]);
-
   return (
     <Dialog
       open={!!videoId}

@@ -7,6 +7,7 @@ import t from "../assets/util";
 import { IoMdClose } from "react-icons/io";
 import ResizeModal from "./ResizeModal";
 import CropModal from "./CropModal";
+import ChangeFormatModal from "./ChangeFormatModal";
 
 function VideoList() {
   const {
@@ -19,6 +20,7 @@ function VideoList() {
   const [extractAudioLoading, setExtractAudioLoading] = useState(null);
   const [resizeModal, setResizeModal] = useState(null);
   const [cropModal, setCropModal] = useState(null);
+  const [changeFormatModal, setChangeFormatModal] = useState(null);
 
   useEffect(() => {
     fetchVideos();
@@ -136,6 +138,7 @@ function VideoList() {
                     className="col-span-2"
                     variant="contained"
                     size="small"
+                    onClick={() => setChangeFormatModal(video.videoId)}
                   >
                     Change Format
                   </Button>
@@ -156,6 +159,10 @@ function VideoList() {
         handleClose={() => setResizeModal(null)}
       />
       <CropModal videoId={cropModal} handleClose={() => setCropModal(null)} />
+      <ChangeFormatModal
+        videoId={changeFormatModal}
+        handleClose={() => setChangeFormatModal(null)}
+      />
     </>
   );
 }
