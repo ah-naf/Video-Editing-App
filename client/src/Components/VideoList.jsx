@@ -31,7 +31,7 @@ function VideoList() {
 
     try {
       /** @API call */
-      await axios.patch(
+      await axios.put(
         `http://localhost:8060/api/video/extract-audio?videoId=${videoId}`,
         {
           videoId,
@@ -143,7 +143,7 @@ function VideoList() {
                     Change Format
                   </Button>
                   <span
-                    onClick={() => deleteVideo(video.videoIdx)}
+                    onClick={() => deleteVideo(video.videoId)}
                     className="hidden group-hover:block bg-red-400 hover:bg-red-500 cursor-pointer absolute top-0 right-0 translate-x-1/2 text-white p-1 rounded-full -translate-y-1/2"
                   >
                     <IoMdClose />

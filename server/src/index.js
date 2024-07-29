@@ -18,6 +18,8 @@ server.use(serverIndex);
 const HomeRoute = server.route("/");
 HomeRoute.sendStatic("./public");
 
+
+
 // --------- API ROUTE ----------- //
 ApiRoute(server);
 

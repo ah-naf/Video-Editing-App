@@ -13,6 +13,7 @@ const useVideo = (videoId) => {
   const [isCropping, setIsCropping] = useState(false);
 
   const deleteVideo = async (videoId) => {
+    console.log(videoId);
     const allVideos = [...videos];
     try {
       const filteredVideos = allVideos.filter(
