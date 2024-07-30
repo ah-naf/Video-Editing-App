@@ -7,7 +7,7 @@ const UploadingIcon = ({ animated }) => {
       height="60px"
       viewBox="0 0 31 31"
       version="1.1"
-      className="box__icon"
+      className="box__icon z-[100]"
     >
       <path
         id="bottom"

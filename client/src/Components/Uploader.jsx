@@ -8,7 +8,7 @@ const CancelToken = axios.CancelToken;
 let cancel;
 
 function Uploader() {
-  const {fetchVideos} = useVideo()
+  const { fetchVideos } = useVideo();
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [processing, setProcessing] = useState(false);
@@ -63,10 +63,6 @@ function Uploader() {
     setFile(e.target.files[0]);
     document.querySelector("#file").value = "";
   };
-
-  //   useEffect(() => {
-  //     console.log({ processing, isUploading, progress });
-  //   }, [progress, isUploading, processing]);
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
@@ -157,8 +153,10 @@ function Uploader() {
             onChange={onInputFileChange}
           />
           {isUploading ? <UploadingIcon animated={true} /> : <UploadingIcon />}
-          {isUploading && <span className="text-center">{progress}%</span>}
-          <div className="flex items-center gap-2 mt-2 text-gray-600">
+          {isUploading && (
+            <span className="text-center z-[100]">{progress}%</span>
+          )}
+          <div className="flex items-center gap-2 mt-2 text-gray-600 ">
             {!isUploading && (
               <div className="text-lg">
                 <label
@@ -192,7 +190,7 @@ function Uploader() {
             )}
           </div>
           {isUploading && (
-            <div className="mt-2 text-gray-600 text-lg">
+            <div className="mt-2 text-gray-600 text-lg z-[100]">
               Uploading <strong className="text-gray-800"> {fileName}</strong>
               <button
                 className="bg-red-400 text-white p-2 px-4 rounded font-bold ml-2"
