@@ -21,7 +21,7 @@ import {
 import { styled } from "@mui/material/styles";
 import { Rnd } from "react-rnd";
 
-const CustomSlider = styled(Slider)(({ theme }) => ({
+export const CustomSlider = styled(Slider)(({ theme }) => ({
   color: "#3a8589",
   height: 3,
   padding: "13px 0",

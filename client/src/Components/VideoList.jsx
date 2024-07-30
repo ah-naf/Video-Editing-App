@@ -8,6 +8,7 @@ import { IoMdClose } from "react-icons/io";
 import ResizeModal from "./ResizeModal";
 import CropModal from "./CropModal";
 import ChangeFormatModal from "./ChangeFormatModal";
+import TrimModal from "./TrimModal";
 
 function VideoList() {
   const {
@@ -21,6 +22,7 @@ function VideoList() {
   const [resizeModal, setResizeModal] = useState(null);
   const [cropModal, setCropModal] = useState(null);
   const [changeFormatModal, setChangeFormatModal] = useState(null);
+  const [trimModal, setTrimModal] = useState(null);
 
   useEffect(() => {
     fetchVideos();
@@ -131,7 +133,11 @@ function VideoList() {
                   >
                     Crop
                   </Button>
-                  <Button variant="contained" size="small">
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => setTrimModal(video.videoId)}
+                  >
                     Trim
                   </Button>
                   <Button
@@ -163,6 +169,7 @@ function VideoList() {
         videoId={changeFormatModal}
         handleClose={() => setChangeFormatModal(null)}
       />
+      <TrimModal videoId={trimModal} handleClose={() => setTrimModal(null)} />
     </>
   );
 }
