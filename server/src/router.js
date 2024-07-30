@@ -32,13 +32,19 @@ module.exports = (server) => {
 
   server.route("/api/video/extract-audio").put(verify, Video.extractAudio);
 
-  server.route("/api/video/resize").put(verify, Video.resizeVideo);
+  server
+    .route("/api/video/resize")
+    .use(verify)
+    .put(Video.resizeVideo)
+    .delete(Video.deleteResize);
 
   server.route("/api/video/crop").put(verify, Video.cropVideo);
 
-  server.route("/api/video/change-format").put(verify, Video.changeFormat);
-
-  server.route("/api/video/resize-delete").delete(verify, Video.deleteResize);
+  server
+    .route("/api/video/change-format")
+    .use(verify)
+    .put(Video.changeFormat)
+    .delete(Video.deleteFormat);
 
   server.route("/get-video-asset").get(Video.getVideoAsset);
 };

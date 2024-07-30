@@ -17,12 +17,16 @@ import { BsDownload } from "react-icons/bs";
 import { BiTrash } from "react-icons/bi";
 
 function ChangeFormatModal({ videoId, handleClose }) {
-  const { video, addFormat, fetchVideos } = useVideo(videoId);
+  const { video, addFormat, fetchVideos, deleteFormat } = useVideo(videoId);
   const [format, setFormat] = useState("");
   const [changeFormatLoading, setChangeFormatLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (format.toLowerCase() === video.extension.toLowerCase()) {
+      return toast.error("Changed format can't be same as original format");
+    }
 
     setChangeFormatLoading(true);
 
@@ -88,7 +92,7 @@ function ChangeFormatModal({ videoId, handleClose }) {
                 variant="contained"
                 color="error"
                 size="small"
-                // onClick={() => deleteResize(dimensions)}
+                onClick={() => deleteFormat(format)}
               >
                 Delete <BiTrash size={15} className="ml-1" />
               </Button>

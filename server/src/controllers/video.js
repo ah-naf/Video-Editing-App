@@ -34,7 +34,7 @@ const uploadVideo = async (req, res) => {
   const name = path.parse(specifiedFileName).name;
   const videoId = crypto.randomBytes(4).toString("hex");
 
-  const FORMATS_SUPPORTED = ["mov", "mp4", "mkv"];
+  const FORMATS_SUPPORTED = ["mov", "mp4", "mkv", "avi", "3gp"];
 
   if (FORMATS_SUPPORTED.indexOf(extension) == -1) {
     return res
@@ -253,8 +253,7 @@ const resizeVideo = async (req, res) => {
 };
 
 const deleteResize = async (req, res) => {
-  const videoId = req.params.get("videoId");
-  const dimension = req.params.get("dimension");
+  const { videoId, dimension } = req.query;
 
   DB.update();
   const video = DB.videos.find((video) => video.videoId === videoId);
@@ -266,7 +265,36 @@ const deleteResize = async (req, res) => {
     });
   }
   delete video.resizes[dimension];
-  const filePath = `/storage/${videoId}/${dimension}.${video.extension}`;
+  const filePath = `./storage/${videoId}/${dimension}.${video.extension}`;
+  util.deleteFile(filePath);
+  DB.save();
+
+  res.status(200).json({
+    status: "success",
+    message: "The resized video is deleted successfully",
+  });
+};
+
+const deleteFormat = async (req, res) => {
+  const { videoId, format } = req.query;
+
+  DB.update();
+  const video = DB.videos.find((video) => video.videoId === videoId);
+
+  if (video.userId !== req.userId) {
+    return res.status(403).json({
+      status: "error",
+      message: "Your are not authorized to perform this action.",
+    });
+  }
+  if (video.extension === format) {
+    return res.status(400).json({
+      status: "error",
+      message: "Video format cannot be of original type.",
+    });
+  }
+  delete video.formats[format];
+  const filePath = `./storage/${videoId}/original.${format}`;
   util.deleteFile(filePath);
   DB.save();
 
@@ -354,6 +382,7 @@ const controllers = {
   deleteResize,
   cropVideo,
   changeFormat,
+  deleteFormat,
 };
 
 module.exports = controllers;

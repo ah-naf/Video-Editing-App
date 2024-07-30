@@ -78,10 +78,25 @@ const useVideo = (videoId) => {
   const deleteResize = async (dimension) => {
     try {
       await axios.delete(
-        `http://localhost:8060/api/video/resize-delete?videoId=${videoId}&dimension=${dimension}`,
+        `http://localhost:8060/api/video/resize?videoId=${videoId}&dimension=${dimension}`,
         { withCredentials: "include" }
       );
       toast.success("The resized video is deleted successfully");
+      fetchVideos();
+    } catch (error) {
+      toast.error(t.alert.error.default);
+    }
+  };
+
+  const deleteFormat = async (format) => {
+    try {
+      const { data } = await axios.delete(
+        `http://localhost:8060/api/video/change-format?videoId=${videoId}&format=${format}`,
+        { withCredentials: "include" }
+      );
+      if (data.status === "success")
+        toast.success("The formatted video is deleted successfully");
+      else toast.error(data.message);
       fetchVideos();
     } catch (error) {
       toast.error(t.alert.error.default);
@@ -160,6 +175,7 @@ const useVideo = (videoId) => {
     isCropping,
     setIsCropping,
     addFormat,
+    deleteFormat,
   };
 };
 
