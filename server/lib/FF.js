@@ -149,4 +149,29 @@ FF.changeFormat = (originalVideoPath, targetVideoPath) => {
   });
 };
 
+FF.trimVideo = (originalVideoPath, targetVideoPath, fromTime, toTime) => {
+  return new Promise((resolve, reject) => {
+    const ffmpeg = spawn("ffmpeg", [
+      "-ss",
+      fromTime,
+      "-i",
+      originalVideoPath,
+      "-t",
+      toTime,
+      "-c",
+      "copy",
+      targetVideoPath,
+    ]);
+
+    ffmpeg.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject("FFmpeg exited with this code: " + code);
+    });
+
+    ffmpeg.on("error", (err) => {
+      reject(err);
+    });
+  });
+};
+
 module.exports = FF;
