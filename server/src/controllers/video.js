@@ -168,6 +168,16 @@ const getVideoAsset = async (req, res) => {
         mimeType = mimeTypeMapping[format] || "application/octet-stream";
         filename = `${video.name}.${format}`;
         break;
+      case "trim":
+        filename = req.query.filename;
+        file = await fs.open(
+          `./storage/${videoId}/${filename}.${video.extension}`,
+          "r"
+        );
+        filename = video.name + " " + filename;
+        mimeType =
+          mimeTypeMapping[video.extension] || "application/octet-stream";
+        break;
       case "crop":
         file = await fs.open(
           `./storage/${videoId}/cropped.${video.extension}`,
@@ -377,12 +387,10 @@ const trimVideo = async (req, res) => {
   const { videoId, startTime, endTime } = req.body;
 
   if (!startTime || !endTime) {
-    return res
-      .status(400)
-      .json({
-        status: "error",
-        message: "Start Time or End Time is not defined.",
-      });
+    return res.status(400).json({
+      status: "error",
+      message: "Start Time or End Time is not defined.",
+    });
   }
 
   DB.update();
