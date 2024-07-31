@@ -372,6 +372,42 @@ const changeFormat = async (req, res) => {
   });
 };
 
+const trimVideo = async (req, res) => {
+  const userId = req.userId;
+  const { videoId, startTime, endTime } = req.body;
+
+  DB.update();
+  const video = DB.videos.find(
+    (video) => video.videoId === videoId && video.userId === userId
+  );
+
+  if (!video) {
+    return res.status(400).json({ message: "Video not found!" });
+  }
+
+  const timestamp = new Date().toISOString().replace(/[:.-]/g, "");
+  const uniqueFileName = `${startTime.replace(/:/g, "")}-${endTime.replace(
+    /:/g,
+    ""
+  )}_${timestamp}`;
+
+  video.trims[uniqueFileName] = { processing: true };
+  DB.save();
+
+  jobs.enqueue({
+    type: "trim",
+    videoId,
+    startTime,
+    endTime,
+    timestamp
+  });
+
+  res.status(200).json({
+    status: "success",
+    message: "The video is now being trimmed",
+  });
+};
+
 const controllers = {
   getVideos,
   uploadVideo,
@@ -383,6 +419,7 @@ const controllers = {
   cropVideo,
   changeFormat,
   deleteFormat,
+  trimVideo
 };
 
 module.exports = controllers;

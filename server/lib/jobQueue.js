@@ -32,6 +32,27 @@ class JobQueue {
           });
         }
       });
+
+      // for trimming
+      Object.keys(video.trims).forEach((key) => {
+        if (video.trims[key].processing) {
+          const fileNameParts = key.split("_");
+          const times = fileNameParts[0].split("-");
+          const startTime = times[0].replace(
+            /(\d{2})(\d{2})(\d{2})/,
+            "$1:$2:$3"
+          );
+          const endTime = times[1].replace(/(\d{2})(\d{2})(\d{2})/, "$1:$2:$3");
+
+          this.enqueue({
+            type: "trim",
+            videoId: video.videoId,
+            startTime,
+            endTime,
+            timestamp: fileNameParts[1],
+          });
+        }
+      });
     });
   }
 
@@ -94,6 +115,39 @@ class JobQueue {
         DB.update();
         const video = DB.videos.find((video) => video.videoId === job.videoId);
         video.formats[job.format] = { processing: false };
+        DB.save();
+        console.log("Job remaining: " + this.jobs.length);
+      } catch (error) {
+        console.log(error);
+        util.deleteFile(targetVideoPath);
+      }
+    } else if (job.type === "trim") {
+      DB.update();
+      const video = DB.videos.find((video) => video.videoId === job.videoId);
+
+      const timestamp = job.timestamp;
+      const uniqueFileName = `${job.startTime.replace(
+        /:/g,
+        ""
+      )}-${job.endTime.replace(/:/g, "")}_${timestamp}`;
+
+      const originalVideoPath = `storage/${video.videoId}/original.${video.extension}`;
+      const targetVideoPath = `storage/${video.videoId}/${uniqueFileName}.${video.extension}`;
+
+      try {
+        console.log("Trimming " + uniqueFileName);
+        await FF.trimVideo(
+          originalVideoPath,
+          targetVideoPath,
+          job.startTime,
+          job.endTime
+        );
+        console.log("Finished Trimming " + uniqueFileName);
+        DB.update();
+
+        DB.update();
+        const video = DB.videos.find((video) => video.videoId === job.videoId);
+        video.trims[uniqueFileName] = { processing: false };
         DB.save();
         console.log("Job remaining: " + this.jobs.length);
       } catch (error) {

@@ -149,15 +149,15 @@ FF.changeFormat = (originalVideoPath, targetVideoPath) => {
   });
 };
 
-FF.trimVideo = (originalVideoPath, targetVideoPath, fromTime, toTime) => {
+FF.trimVideo = (originalVideoPath, targetVideoPath, startTime, endTime) => {
   return new Promise((resolve, reject) => {
     const ffmpeg = spawn("ffmpeg", [
       "-ss",
-      fromTime,
+      startTime,
       "-i",
       originalVideoPath,
       "-t",
-      toTime,
+      endTime,
       "-c",
       "copy",
       targetVideoPath,

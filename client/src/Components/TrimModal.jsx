@@ -17,9 +17,14 @@ import {
 } from "react-icons/fa";
 import useVideo from "../Hooks/useVideo";
 import { CustomSlider } from "./CropModal";
+import axios from "axios";
+import toast from "react-hot-toast";
+import { BiTrash } from "react-icons/bi";
+import { BsDownload } from "react-icons/bs";
+import { IoReload } from "react-icons/io5";
 
 function TrimModal({ videoId, handleClose }) {
-  const { video } = useVideo(videoId);
+  const { video, fetchVideos } = useVideo(videoId);
   const ref = useRef(null);
   const containerRef = useRef(null);
   const [isBuffering, setIsBuffering] = useState(true);
@@ -29,6 +34,7 @@ function TrimModal({ videoId, handleClose }) {
   const [totalTime, setTotalTime] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [value, setValue] = useState([0, 0, 0]);
+  const [loading, setLoading] = useState(false);
 
   function formatTime(seconds) {
     const h = Math.floor(seconds / 3600);
@@ -73,7 +79,7 @@ function TrimModal({ videoId, handleClose }) {
     }
   }, [videoId]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const formatTime = (seconds) => {
       const h = Math.floor(seconds / 3600)
         .toString()
@@ -91,10 +97,121 @@ function TrimModal({ videoId, handleClose }) {
     const startTime = formatTime(value[0]);
     const endTime = formatTime(value[2]);
 
-    console.log("Start Time:", startTime);
-    console.log("End Time:", endTime);
-
     // Implement the trimming logic here, such as making an API call to the server with startTime and endTime.
+    try {
+      setLoading(true);
+
+      const { data } = await axios.put(
+        "http://localhost:8060/api/video/trim",
+        {
+          videoId,
+          startTime,
+          endTime,
+        },
+        { withCredentials: "include" }
+      );
+
+      if (data.status === "success") {
+        toast.success(data.message);
+        fetchVideos();
+      } else {
+        toast.error("Something wrong happend. Try again later.");
+      }
+    } catch (error) {
+      toast.error("Something wrong happend. Try again later.");
+    }
+    setLoading(false);
+  };
+
+  const renderTrims = () => {
+    const formatArray = Object.keys(video.trims);
+
+    // Sort by timestamp, most recent first
+    formatArray.sort((a, b) => {
+      const timestampA = a.split("_")[1];
+      const timestampB = b.split("_")[1];
+      return timestampB.localeCompare(timestampA);
+    });
+
+    // Separate processing and processed videos
+    const processingVideos = formatArray.filter(
+      (filename) => video.trims[filename].processing
+    );
+
+    const processedVideos = formatArray.filter(
+      (filename) => !video.trims[filename].processing
+    );
+
+    const sortedFormats = [...processingVideos, ...processedVideos];
+
+    return sortedFormats.map((filename, index) => {
+      const isProcessing = video.trims[filename].processing;
+
+      // Extract start, end times, and timestamp from the filename
+      const [timeRange, timestamp] = filename.split("_");
+      const [startTime, endTime] = timeRange.split("-").map((time) => {
+        return time.replace(/(\d{2})(\d{2})(\d{2})/, "$1:$2:$3");
+      });
+
+      const parseTimestamp = (timestamp) => {
+        const year = timestamp.substring(0, 4);
+        const month = timestamp.substring(4, 6) - 1; // Month is zero-based
+        const day = timestamp.substring(6, 8);
+        const hours = timestamp.substring(9, 11);
+        const minutes = timestamp.substring(11, 13);
+        const seconds = timestamp.substring(13, 15);
+        const milliseconds = timestamp.substring(15, 18);
+
+        return new Date(
+          Date.UTC(year, month, day, hours, minutes, seconds, milliseconds)
+        );
+      };
+
+      // Example usage:
+      const date = parseTimestamp(timestamp);
+      const formattedDate = date.toLocaleDateString();
+      const formattedTime = date.toLocaleTimeString();
+
+      return (
+        <div
+          key={filename}
+          className="flex items-center justify-between bg-gray-200 p-3 shadow rounded mt-4"
+        >
+          <div>
+            <p className="font-medium text-gray-800 uppercase">
+              {startTime} - {endTime}
+            </p>
+            <span className="text-xs">
+              {formattedDate} {formattedTime}
+            </span>
+          </div>
+          {isProcessing ? (
+            <span className="text-blue-500 font-medium tracking-wider">
+              Processing...
+            </span>
+          ) : (
+            <div className="space-x-2">
+              <Button
+                href={`http://localhost:8060/get-video-asset?videoId=${videoId}&type=trim&filename=${filename}`}
+                variant="contained"
+                color="success"
+                size="small"
+              >
+                Download <BsDownload size={15} className="ml-1" />
+              </Button>
+              <Button
+                variant="contained"
+                color="error"
+                size="small"
+                // onClick={() => deleteFormat(format)}
+              >
+                Delete <BiTrash size={15} className="ml-1" />
+              </Button>
+            </div>
+          )}
+        </div>
+      );
+    });
   };
 
   return (
@@ -215,6 +332,25 @@ function TrimModal({ videoId, handleClose }) {
           <Button variant="contained" size="small" onClick={handleSubmit}>
             Trim
           </Button>
+        </div>
+        <div className="mt-6">
+          <h2 className="text-lg flex items-center gap-2 text-gray-700 font-medium">
+            Your Trimmed Video:{" "}
+            <span>
+              {" "}
+              <IoReload
+                className="cursor-pointer"
+                onClick={() => fetchVideos()}
+              />{" "}
+            </span>{" "}
+          </h2>
+          {video.trims && Object.keys(video.trims).length ? (
+            renderTrims()
+          ) : (
+            <p className="text-gray-600">
+              You haven&apos;t trimmed this video yet.
+            </p>
+          )}
         </div>
       </DialogContent>
     </Dialog>
