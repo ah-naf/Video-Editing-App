@@ -376,6 +376,15 @@ const trimVideo = async (req, res) => {
   const userId = req.userId;
   const { videoId, startTime, endTime } = req.body;
 
+  if (!startTime || !endTime) {
+    return res
+      .status(400)
+      .json({
+        status: "error",
+        message: "Start Time or End Time is not defined.",
+      });
+  }
+
   DB.update();
   const video = DB.videos.find(
     (video) => video.videoId === videoId && video.userId === userId
@@ -399,12 +408,36 @@ const trimVideo = async (req, res) => {
     videoId,
     startTime,
     endTime,
-    timestamp
+    timestamp,
   });
 
   res.status(200).json({
     status: "success",
     message: "The video is now being trimmed",
+  });
+};
+
+const deleteTrim = async (req, res) => {
+  const { videoId, filename } = req.query;
+
+  DB.update();
+  const video = DB.videos.find((video) => video.videoId === videoId);
+
+  if (video.userId !== req.userId) {
+    return res.status(403).json({
+      status: "error",
+      message: "Your are not authorized to perform this action.",
+    });
+  }
+
+  delete video.trims[filename];
+  const filePath = `./storage/${videoId}/${filename}.${video.extension}`;
+  util.deleteFile(filePath);
+  DB.save();
+
+  res.status(200).json({
+    status: "success",
+    message: "The trimmed video is deleted successfully",
   });
 };
 
@@ -419,7 +452,8 @@ const controllers = {
   cropVideo,
   changeFormat,
   deleteFormat,
-  trimVideo
+  trimVideo,
+  deleteTrim,
 };
 
 module.exports = controllers;

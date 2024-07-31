@@ -24,7 +24,7 @@ import { BsDownload } from "react-icons/bs";
 import { IoReload } from "react-icons/io5";
 
 function TrimModal({ videoId, handleClose }) {
-  const { video, fetchVideos } = useVideo(videoId);
+  const { video, fetchVideos, deleteTrim } = useVideo(videoId);
   const ref = useRef(null);
   const containerRef = useRef(null);
   const [isBuffering, setIsBuffering] = useState(true);
@@ -203,7 +203,7 @@ function TrimModal({ videoId, handleClose }) {
                 variant="contained"
                 color="error"
                 size="small"
-                // onClick={() => deleteFormat(format)}
+                onClick={() => deleteTrim(filename)}
               >
                 Delete <BiTrash size={15} className="ml-1" />
               </Button>

@@ -40,7 +40,11 @@ module.exports = (server) => {
 
   server.route("/api/video/crop").put(verify, Video.cropVideo);
 
-  server.route("/api/video/trim").put(verify, Video.trimVideo);
+  server
+    .route("/api/video/trim")
+    .use(verify)
+    .put(Video.trimVideo)
+    .delete(Video.deleteTrim);
 
   server
     .route("/api/video/change-format")

@@ -103,6 +103,21 @@ const useVideo = (videoId) => {
     }
   };
 
+  const deleteTrim = async (filename) => {
+    try {
+      const { data } = await axios.delete(
+        `http://localhost:8060/api/video/trim?videoId=${videoId}&filename=${filename}`,
+        { withCredentials: "include" }
+      );
+      if (data.status === "success")
+        toast.success("The trimmed video is deleted successfully");
+      else toast.error(data.message);
+      fetchVideos();
+    } catch (error) {
+      toast.error(t.alert.error.default);
+    }
+  };
+
   const fetchVideos = async () => {
     setLoading(true);
     try {
@@ -176,6 +191,7 @@ const useVideo = (videoId) => {
     setIsCropping,
     addFormat,
     deleteFormat,
+    deleteTrim
   };
 };
 
