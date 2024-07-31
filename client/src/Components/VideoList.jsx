@@ -139,6 +139,11 @@ function VideoList() {
                     onClick={() => setTrimModal(video.videoId)}
                   >
                     Trim
+                    {video.trims && (
+                      <span className="ml-1 bg-white rounded-full w-4  text-center !text-xs text-gray-700 font-semibold">
+                        {Object.keys(video.trims).length}
+                      </span>
+                    )}
                   </Button>
                   <Button
                     className="col-span-2"
@@ -147,6 +152,11 @@ function VideoList() {
                     onClick={() => setChangeFormatModal(video.videoId)}
                   >
                     Change Format
+                    {video.formats && (
+                      <span className="ml-1 bg-white rounded-full w-4  text-center !text-xs text-gray-700 font-semibold">
+                        {Object.keys(video.formats).length}
+                      </span>
+                    )}
                   </Button>
                   <span
                     onClick={() => deleteVideo(video.videoId)}
