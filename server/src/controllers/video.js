@@ -5,9 +5,25 @@ const { pipeline } = require("node:stream/promises");
 const util = require("../../lib/util");
 const DB = require("../DB");
 const FF = require("../../lib/FF");
-const JobQueue = require("../../lib/jobQueue");
+const cluster = require("node:cluster");
 
-const jobs = new JobQueue();
+let jobs;
+
+if (cluster.isPrimary) {
+  const JobQueue = require("../../lib/JobQueue");
+  jobs = new JobQueue();
+} else {
+  // In case of worker process, jobs will be handled by primary process via IPC
+  jobs = null;
+}
+
+const sendJobToPrimary = (job) => {
+  if (cluster.isWorker) {
+    process.send({ type: "enqueueJob", job });
+  } else {
+    jobs.enqueue(job);
+  }
+};
 
 const getVideos = (req, res) => {
   DB.update();
@@ -67,6 +83,7 @@ const uploadVideo = async (req, res) => {
       extractedAudio: false,
       resizes: {},
       formats: {},
+      trims: {},
     });
     DB.save();
 
@@ -249,7 +266,7 @@ const resizeVideo = async (req, res) => {
   video.resizes[`${width}x${height}`] = { processing: true };
   DB.save();
 
-  jobs.enqueue({
+  sendJobToPrimary({
     type: "resize",
     videoId,
     width,
@@ -370,7 +387,7 @@ const changeFormat = async (req, res) => {
   video.formats[format] = { processing: true };
   DB.save();
 
-  jobs.enqueue({
+  sendJobToPrimary({
     type: "format",
     videoId,
     format,
@@ -411,7 +428,7 @@ const trimVideo = async (req, res) => {
   video.trims[uniqueFileName] = { processing: true };
   DB.save();
 
-  jobs.enqueue({
+  sendJobToPrimary({
     type: "trim",
     videoId,
     startTime,
