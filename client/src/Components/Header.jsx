@@ -83,18 +83,6 @@ const Header = () => {
           </Link>
         )}
 
-        {section !== "/profile" && loggedIn && (
-          <Link
-            to="/profile"
-            className="hover:underline"
-            onClick={() => {
-              setSection("/profile");
-            }}
-          >
-            Profile
-          </Link>
-        )}
-
         {loggedIn && (
           <Link
             className="hover:underline"

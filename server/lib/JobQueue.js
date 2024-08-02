@@ -6,10 +6,12 @@ class JobQueue {
   constructor() {
     this.jobs = [];
     this.currentJob = null;
+    this.populateJobs();
+  }
 
+  populateJobs() {
     DB.update();
     DB.videos.forEach((video) => {
-      // For resizes
       Object.keys(video.resizes).forEach((key) => {
         if (video.resizes[key].processing) {
           const [width, height] = key.split("x");
@@ -22,7 +24,6 @@ class JobQueue {
         }
       });
 
-      // for changing format
       Object.keys(video.formats).forEach((key) => {
         if (video.formats[key].processing) {
           this.enqueue({
@@ -33,7 +34,6 @@ class JobQueue {
         }
       });
 
-      // for trimming
       Object.keys(video.trims).forEach((key) => {
         if (video.trims[key].processing) {
           const fileNameParts = key.split("_");
@@ -53,12 +53,30 @@ class JobQueue {
           });
         }
       });
+
+      Object.keys(video.crops).forEach((key) => {
+        if (video.crops[key].processing) {
+          const { width, height, x, y } = video.crops[key];
+
+          this.enqueue({
+            type: "crop",
+            videoId: video.videoId,
+            width: Number(width),
+            height: Number(height),
+            x: Number(x),
+            y: Number(y),
+            uniqueFileName: key,
+          });
+        }
+      });
     });
   }
 
   enqueue(job) {
-    if (job) this.jobs.push(job);
-    this.executeNext();
+    if (job) {
+      this.jobs.push(job);
+      this.executeNext();
+    }
   }
 
   dequeue() {
@@ -73,91 +91,136 @@ class JobQueue {
   }
 
   async execute(job) {
-    if (job.type === "resize") {
-      DB.update();
-      const video = DB.videos.find((video) => video.videoId === job.videoId);
-      const videoName = video.name;
-      const originalVideoPath = `./storage/${video.videoId}/original.${video.extension}`;
-      const targetVideoPath = `./storage/${video.videoId}/${job.width}x${job.height}.${video.extension}`;
-
-      try {
-        console.log("Resizing " + videoName);
-        await FF.resize(
-          originalVideoPath,
-          targetVideoPath,
-          job.width,
-          job.height
-        );
-
-        console.log("Finished Resizing " + videoName);
-        DB.update();
-        const video = DB.videos.find((video) => video.videoId === job.videoId);
-        video.resizes[`${job.width}x${job.height}`] = { processing: false };
-        DB.save();
-        console.log("Job remaining: " + this.jobs.length);
-      } catch (error) {
-        console.log(error);
-        util.deleteFile(targetVideoPath);
+    console.log(`Executing job: `, job);
+    try {
+      if (job.type === "resize") {
+        await this.processResize(job);
+      } else if (job.type === "format") {
+        await this.processFormat(job);
+      } else if (job.type === "trim") {
+        await this.processTrim(job);
+      } else if (job.type === "crop") {
+        await this.processCrop(job);
       }
-    } else if (job.type === "format") {
-      DB.update();
-      const video = DB.videos.find((video) => video.videoId === job.videoId);
-      const videoName = video.name;
-
-      const originalVideoPath = `./storage/${video.videoId}/original.${video.extension}`;
-      const targetVideoPath = `./storage/${video.videoId}/original.${job.format}`;
-
-      try {
-        console.log("changing " + videoName);
-        await FF.changeFormat(originalVideoPath, targetVideoPath);
-
-        console.log("Finished changing " + videoName);
-        DB.update();
-        const video = DB.videos.find((video) => video.videoId === job.videoId);
-        video.formats[job.format] = { processing: false };
-        DB.save();
-        console.log("Job remaining: " + this.jobs.length);
-      } catch (error) {
-        console.log(error);
-        util.deleteFile(targetVideoPath);
-      }
-    } else if (job.type === "trim") {
-      DB.update();
-      const video = DB.videos.find((video) => video.videoId === job.videoId);
-
-      const timestamp = job.timestamp;
-      const uniqueFileName = `${job.startTime.replace(
-        /:/g,
-        ""
-      )}-${job.endTime.replace(/:/g, "")}_${timestamp}`;
-
-      const originalVideoPath = `storage/${video.videoId}/original.${video.extension}`;
-      const targetVideoPath = `storage/${video.videoId}/${uniqueFileName}.${video.extension}`;
-
-      try {
-        console.log("Trimming " + uniqueFileName);
-        await FF.trimVideo(
-          originalVideoPath,
-          targetVideoPath,
-          job.startTime,
-          job.endTime
-        );
-        console.log("Finished Trimming " + uniqueFileName);
-        DB.update();
-
-        DB.update();
-        const video = DB.videos.find((video) => video.videoId === job.videoId);
-        video.trims[uniqueFileName] = { processing: false };
-        DB.save();
-        console.log("Job remaining: " + this.jobs.length);
-      } catch (error) {
-        console.log(error);
-        util.deleteFile(targetVideoPath);
-      }
+    } finally {
+      this.currentJob = null;
+      this.executeNext();
     }
+  }
 
-    this.currentJob = null;
-    this.executeNext();
+  async processCrop(job) {
+    DB.update();
+    const video = DB.videos.find((video) => video.videoId === job.videoId);
+    const originalVideoPath = `storage/${video.videoId}/original.${video.extension}`;
+    const targetVideoPath = `storage/${video.videoId}/${job.uniqueFileName}.${video.extension}`;
+    util.deleteFile(targetVideoPath);
+
+    try {
+      console.log("Cropping " + job.uniqueFileName);
+      await FF.crop(originalVideoPath, targetVideoPath, {
+        width: job.width,
+        height: job.height,
+        x: job.x,
+        y: job.y,
+      });
+
+      console.log("Finished cropping " + job.uniqueFileName);
+      DB.update();
+      const updatedVideo = DB.videos.find(
+        (video) => video.videoId === job.videoId
+      );
+      updatedVideo.crops[job.uniqueFileName] = { processing: false };
+      DB.save();
+    } catch (error) {
+      console.log(error);
+      util.deleteFile(targetVideoPath);
+    } finally {
+      this.currentJob = null;
+      this.executeNext();
+    }
+  }
+
+  async processResize(job) {
+    DB.update();
+    const video = DB.videos.find((video) => video.videoId === job.videoId);
+    const videoName = video.name;
+    const originalVideoPath = `./storage/${video.videoId}/original.${video.extension}`;
+    const targetVideoPath = `./storage/${video.videoId}/${job.width}x${job.height}.${video.extension}`;
+
+    try {
+      console.log(`Resizing ${videoName}`);
+      await FF.resize(
+        originalVideoPath,
+        targetVideoPath,
+        job.width,
+        job.height
+      );
+      console.log(`Finished resizing ${videoName}`);
+      DB.update();
+      const updatedVideo = DB.videos.find(
+        (video) => video.videoId === job.videoId
+      );
+      updatedVideo.resizes[`${job.width}x${job.height}`].processing = false;
+      DB.save();
+    } catch (error) {
+      console.log(error);
+      util.deleteFile(targetVideoPath);
+    }
+  }
+
+  async processFormat(job) {
+    DB.update();
+    const video = DB.videos.find((video) => video.videoId === job.videoId);
+    const videoName = video.name;
+    const originalVideoPath = `./storage/${video.videoId}/original.${video.extension}`;
+    const targetVideoPath = `./storage/${video.videoId}/original.${job.format}`;
+
+    try {
+      console.log(`Changing format of ${videoName}`);
+      await FF.changeFormat(originalVideoPath, targetVideoPath);
+      console.log(`Finished changing format of ${videoName}`);
+      DB.update();
+      const updatedVideo = DB.videos.find(
+        (video) => video.videoId === job.videoId
+      );
+      updatedVideo.formats[job.format].processing = false;
+      DB.save();
+    } catch (error) {
+      console.log(error);
+      util.deleteFile(targetVideoPath);
+    }
+  }
+
+  async processTrim(job) {
+    DB.update();
+    const video = DB.videos.find((video) => video.videoId === job.videoId);
+    const timestamp = job.timestamp;
+    const uniqueFileName = `${job.startTime.replace(
+      /:/g,
+      ""
+    )}-${job.endTime.replace(/:/g, "")}_${timestamp}`;
+    const originalVideoPath = `storage/${video.videoId}/original.${video.extension}`;
+    const targetVideoPath = `storage/${video.videoId}/${uniqueFileName}.${video.extension}`;
+
+    try {
+      console.log(`Trimming video ${uniqueFileName}`);
+      await FF.trimVideo(
+        originalVideoPath,
+        targetVideoPath,
+        job.startTime,
+        job.endTime
+      );
+      console.log(`Finished trimming video ${uniqueFileName}`);
+      DB.update();
+      const updatedVideo = DB.videos.find(
+        (video) => video.videoId === job.videoId
+      );
+      updatedVideo.trims[uniqueFileName].processing = false;
+      DB.save();
+    } catch (error) {
+      console.log(error);
+      util.deleteFile(targetVideoPath);
+    }
   }
 }
 

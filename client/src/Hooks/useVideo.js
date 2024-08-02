@@ -9,7 +9,6 @@ const useVideo = (videoId) => {
   const { videos, setVideos } = useContext(AppContext); // the complete list of videos
   const [loading, setLoading] = useState(true); // loading for fetching the videos
   const [video, setVideo] = useState({}); // selected video for the modal
-  const [cropSuccess, setCropSuccess] = useState(false);
   const [isCropping, setIsCropping] = useState(false);
 
   const deleteVideo = async (videoId) => {
@@ -56,7 +55,6 @@ const useVideo = (videoId) => {
   const cropVideo = async (option) => {
     try {
       setIsCropping(true);
-      setCropSuccess(false);
       await axios.put(
         "http://localhost:8060/api/video/crop",
         {
@@ -66,8 +64,8 @@ const useVideo = (videoId) => {
         { withCredentials: "include" }
       );
 
-      toast.success("Video cropped successfully");
-      setCropSuccess(true);
+      toast.success("Video is now being cropped. Please wait.");
+      fetchVideos();
     } catch (error) {
       toast.error("Failed to crop the video. Please try again later.");
     } finally {
@@ -96,6 +94,21 @@ const useVideo = (videoId) => {
       );
       if (data.status === "success")
         toast.success("The formatted video is deleted successfully");
+      else toast.error(data.message);
+      fetchVideos();
+    } catch (error) {
+      toast.error(t.alert.error.default);
+    }
+  };
+
+  const deleteCrop = async (filename) => {
+    try {
+      const { data } = await axios.delete(
+        `http://localhost:8060/api/video/crop?videoId=${videoId}&filename=${filename}`,
+        { withCredentials: "include" }
+      );
+      if (data.status === "success")
+        toast.success("The cropped video is deleted successfully");
       else toast.error(data.message);
       fetchVideos();
     } catch (error) {
@@ -139,7 +152,6 @@ const useVideo = (videoId) => {
     } else {
       setVideo({});
     }
-    setCropSuccess(false);
     setIsCropping(false);
   }, [videoId, videos]);
 
@@ -185,13 +197,12 @@ const useVideo = (videoId) => {
     deleteVideo,
     deleteResize,
     cropVideo,
-    cropSuccess,
-    setCropSuccess,
     isCropping,
     setIsCropping,
     addFormat,
     deleteFormat,
-    deleteTrim
+    deleteTrim,
+    deleteCrop,
   };
 };
 

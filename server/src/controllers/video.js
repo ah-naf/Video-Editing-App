@@ -33,7 +33,6 @@ const getVideos = (req, res) => {
 
 const deleteVideo = (req, res) => {
   const videoId = req.query.videoId;
-  console.log(videoId);
   DB.update();
   let path = `./storage/${videoId}`;
   util.deleteFolder(path);
@@ -84,6 +83,7 @@ const uploadVideo = async (req, res) => {
       resizes: {},
       formats: {},
       trims: {},
+      crops: {},
     });
     DB.save();
 
@@ -125,6 +125,7 @@ const extractAudio = async (req, res) => {
       message: "The audio was extracted successfully",
     });
   } catch (error) {
+    console.log(error);
     util.deleteFile(targetAudioPath);
     return res.status(500).json({ message: error.message });
   }
@@ -191,7 +192,7 @@ const getVideoAsset = async (req, res) => {
           `./storage/${videoId}/${filename}.${video.extension}`,
           "r"
         );
-        filename = video.name + " " + filename;
+        filename = video.name + " " + filename + "." + video.extension;
         mimeType =
           mimeTypeMapping[video.extension] || "application/octet-stream";
         break;
@@ -225,7 +226,6 @@ const getVideoAsset = async (req, res) => {
       res.setHeader("Content-Range", `bytes ${start}-${end}/${fileSize}`);
       res.setHeader("Accept-Ranges", "bytes");
       res.setHeader("Content-Length", chunkSize);
-      console.log(mimeType);
       res.setHeader("Content-Type", mimeType);
 
       res.status(206);
@@ -244,7 +244,7 @@ const getVideoAsset = async (req, res) => {
       await pipeline(fileStream, res);
     }
   } catch (error) {
-    console.error("Error:", error);
+    // console.error("Error:", error);
     if (!res.headersSent) {
       res.status(500).json({ message: "Internal server error" });
     }
@@ -347,23 +347,56 @@ const cropVideo = async (req, res) => {
   if (!video) {
     return res.status(400).json({ message: "Video not found!" });
   }
+  const timestamp = new Date().toISOString().replace(/[:.-]/g, "");
+  const uniqueFileName = `cropped_${timestamp}`;
 
-  const originalVideoPath = `storage/${videoId}/original.${video.extension}`;
-  const targetVideoPath = `storage/${videoId}/cropped.${video.extension}`;
-  util.deleteFile(targetVideoPath);
+  video.crops[uniqueFileName] = {
+    processing: true,
+    width,
+    height,
+    x,
+    y,
+    timestamp,
+  };
+  DB.save();
 
-  try {
-    await FF.crop(originalVideoPath, targetVideoPath, { width, height, x, y });
+  sendJobToPrimary({
+    type: "crop",
+    videoId,
+    uniqueFileName,
+    width,
+    height,
+    x,
+    y,
+  });
 
-    res.status(200).json({
-      status: 200,
-      message: "Video cropped successfully!",
+  res.status(200).json({
+    status: "success",
+    message: "The video is now being cropped.",
+  });
+};
+
+const deleteCrop = async (req, res) => {
+  const { videoId, filename } = req.query;
+
+  DB.update();
+  const video = DB.videos.find((video) => video.videoId === videoId);
+
+  if (video.userId !== req.userId) {
+    return res.status(403).json({
+      status: "error",
+      message: "Your are not authorized to perform this action.",
     });
-  } catch (error) {
-    console.log(error);
-    util.deleteFile(targetVideoPath);
-    return res.status(500).json({ message: error.message });
   }
+  delete video.crops[filename];
+  const filePath = `./storage/${videoId}/${filename}.${video.extension}`;
+  util.deleteFile(filePath);
+  DB.save();
+
+  res.status(200).json({
+    status: "success",
+    message: "The cropped video is deleted successfully",
+  });
 };
 
 const changeFormat = async (req, res) => {
@@ -479,6 +512,7 @@ const controllers = {
   deleteFormat,
   trimVideo,
   deleteTrim,
+  deleteCrop
 };
 
 module.exports = controllers;

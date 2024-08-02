@@ -20,6 +20,9 @@ import {
 } from "react-icons/fa";
 import { styled } from "@mui/material/styles";
 import { Rnd } from "react-rnd";
+import { IoReload } from "react-icons/io5";
+import { BsDownload } from "react-icons/bs";
+import { BiTrash } from "react-icons/bi";
 
 export const CustomSlider = styled(Slider)(({ theme }) => ({
   color: "#3a8589",
@@ -52,7 +55,7 @@ export const CustomSlider = styled(Slider)(({ theme }) => ({
 }));
 
 function CropModal({ videoId, handleClose }) {
-  const { video, cropVideo, cropSuccess, setCropSuccess, isCropping } =
+  const { video, cropVideo, isCropping, fetchVideos, deleteCrop } =
     useVideo(videoId);
   const ref = useRef(null);
   const containerRef = useRef(null);
@@ -120,6 +123,60 @@ function CropModal({ videoId, handleClose }) {
   useEffect(() => {
     setPlaying(true);
   }, [videoId]);
+
+  const renderCrops = () => {
+    const formatArray = Object.keys(video.crops);
+
+    // Separate processing and processed videos
+    const processingVideos = formatArray.filter(
+      (filename) => video.crops[filename].processing
+    );
+
+    const processedVideos = formatArray.filter(
+      (filename) => !video.crops[filename].processing
+    );
+
+    const sortedFormats = [...processingVideos, ...processedVideos];
+
+    return sortedFormats.map((crop, index) => {
+      const isProcessing = video.crops[crop].processing;
+
+      return (
+        <div
+          key={crop}
+          className="flex items-center justify-between bg-gray-200 p-3 shadow rounded mt-4"
+        >
+          <div>
+            <p className="font-medium text-gray-800 uppercase">{crop}</p>
+          </div>
+          {isProcessing ? (
+            <span className="text-blue-500 font-medium tracking-wider">
+              Processing...
+            </span>
+          ) : (
+            <div className="space-x-2">
+              <Button
+                href={`http://localhost:8060/get-video-asset?videoId=${videoId}&type=trim&filename=${crop}`}
+                variant="contained"
+                color="success"
+                size="small"
+              >
+                Download <BsDownload size={15} className="ml-1" />
+              </Button>
+              <Button
+                variant="contained"
+                color="error"
+                size="small"
+                onClick={() => deleteCrop(crop)}
+              >
+                Delete <BiTrash size={15} className="ml-1" />
+              </Button>
+            </div>
+          )}
+        </div>
+      );
+    });
+  };
 
   return (
     <Dialog
@@ -245,36 +302,36 @@ function CropModal({ videoId, handleClose }) {
           </IconButton>
         </div>
         <div className="flex justify-end mt-4 gap-4">
-          {cropSuccess ? (
-            <>
-              <Button
-                variant="contained"
-                className="!bg-red-500"
-                onClick={() => setCropSuccess(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                href={`http://localhost:8060/get-video-asset?videoId=${videoId}&type=crop`}
-                variant="contained"
-                className="!bg-green-500"
-              >
-                Download
-              </Button>
-            </>
+          <Button
+            className={isCropping ? "pointer-events-none" : ""}
+            variant="contained"
+            color="primary"
+            onClick={handleCrop}
+          >
+            {!isCropping ? (
+              "Crop"
+            ) : (
+              <CircularProgress size={20} className="!text-white" />
+            )}
+          </Button>
+        </div>
+        <div className="mt-6">
+          <h2 className="text-lg flex items-center gap-2 text-gray-700 font-medium">
+            Your Cropped Video:{" "}
+            <span>
+              {" "}
+              <IoReload
+                className="cursor-pointer"
+                onClick={() => fetchVideos()}
+              />{" "}
+            </span>{" "}
+          </h2>
+          {video.crops && Object.keys(video.crops).length ? (
+            renderCrops()
           ) : (
-            <Button
-              className={isCropping ? "pointer-events-none" : ""}
-              variant="contained"
-              color="primary"
-              onClick={handleCrop}
-            >
-              {!isCropping ? (
-                "Crop"
-              ) : (
-                <CircularProgress size={20} className="!text-white" />
-              )}
-            </Button>
+            <p className="text-gray-600">
+              You haven&apos;t cropped this video yet.
+            </p>
           )}
         </div>
       </DialogContent>

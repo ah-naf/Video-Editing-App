@@ -78,8 +78,16 @@ FF.extractAudio = (originalVideoPath, targetAudioPath) => {
 
     ffmpeg.on("close", (code) => {
       if (code === 0) resolve();
-      else reject("FFmpeg exited with this code: " + code);
+      else {
+        if (code === 234) {
+          reject("Video doesn't contain any audio stream.");
+        } else reject("FFmpeg exited with this code: " + code);
+      }
     });
+
+    // ffmpeg.stderr.on("data", (data) => {
+    //   console.log(data.toString());
+    // });
 
     ffmpeg.on("error", (err) => {
       reject(err);

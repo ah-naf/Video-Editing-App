@@ -38,7 +38,11 @@ module.exports = (server) => {
     .put(Video.resizeVideo)
     .delete(Video.deleteResize);
 
-  server.route("/api/video/crop").put(verify, Video.cropVideo);
+  server
+    .route("/api/video/crop")
+    .use(verify)
+    .put(Video.cropVideo)
+    .delete(Video.deleteCrop);
 
   server
     .route("/api/video/trim")
