@@ -9,16 +9,15 @@ const cluster = require("node:cluster");
 
 let jobs;
 
-if (cluster.isPrimary) {
+if (cluster.isMaster) {
   const JobQueue = require("../../lib/JobQueue");
   jobs = new JobQueue();
 } else {
-  // In case of worker process, jobs will be handled by primary process via IPC
   jobs = null;
 }
 
-const sendJobToPrimary = (job) => {
-  if (!cluster.isPrimary) {
+const sendJobToMaster = (job) => {
+  if (!cluster.isMaster) {
     process.send({ type: "enqueue-job", job });
   } else {
     jobs.enqueue(job);
@@ -244,7 +243,6 @@ const getVideoAsset = async (req, res) => {
       await pipeline(fileStream, res);
     }
   } catch (error) {
-    // console.error("Error:", error);
     if (!res.headersSent) {
       res.status(500).json({ message: "Internal server error" });
     }
@@ -266,7 +264,7 @@ const resizeVideo = async (req, res) => {
   video.resizes[`${width}x${height}`] = { processing: true };
   DB.save();
 
-  sendJobToPrimary({
+  sendJobToMaster({
     type: "resize",
     videoId,
     width,
@@ -360,7 +358,7 @@ const cropVideo = async (req, res) => {
   };
   DB.save();
 
-  sendJobToPrimary({
+  sendJobToMaster({
     type: "crop",
     videoId,
     uniqueFileName,
@@ -412,15 +410,12 @@ const changeFormat = async (req, res) => {
     return res.status(400).json({ message: "Video not found!" });
   }
   if (video.formats[format]) {
-    return handleErr({
-      status: 400,
-      message: "Format already exist.",
-    });
+    return res.status(400).json({ message: "Format already exists." });
   }
   video.formats[format] = { processing: true };
   DB.save();
 
-  sendJobToPrimary({
+  sendJobToMaster({
     type: "format",
     videoId,
     format,
@@ -461,7 +456,7 @@ const trimVideo = async (req, res) => {
   video.trims[uniqueFileName] = { processing: true };
   DB.save();
 
-  sendJobToPrimary({
+  sendJobToMaster({
     type: "trim",
     videoId,
     startTime,

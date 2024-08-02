@@ -1,6 +1,7 @@
 const DB = require("../src/DB");
 const FF = require("./FF");
 const util = require("./util");
+const cluster = require("node:cluster");
 
 class JobQueue {
   constructor() {
@@ -75,7 +76,9 @@ class JobQueue {
   enqueue(job) {
     if (job) {
       this.jobs.push(job);
-      this.executeNext();
+      if (cluster.isMaster) {
+        this.executeNext();
+      }
     }
   }
 
@@ -91,20 +94,33 @@ class JobQueue {
   }
 
   async execute(job) {
-    console.log(`Executing job: `, job);
-    try {
-      if (job.type === "resize") {
-        await this.processResize(job);
-      } else if (job.type === "format") {
-        await this.processFormat(job);
-      } else if (job.type === "trim") {
-        await this.processTrim(job);
-      } else if (job.type === "crop") {
-        await this.processCrop(job);
-      }
-    } finally {
-      this.currentJob = null;
-      this.executeNext();
+    if (cluster.isMaster) {
+      this.executeInWorker(job);
+    } else {
+      await this.processJob(job);
+      process.send({ type: "job-complete" });
+    }
+  }
+
+  executeInWorker(job) {
+    const availableWorker = Object.values(cluster.workers).find(
+      (worker) => worker.isIdle
+    );
+    if (availableWorker) {
+      availableWorker.isIdle = false;
+      availableWorker.send({ type: "job", job });
+    }
+  }
+
+  async processJob(job) {
+    if (job.type === "resize") {
+      await this.processResize(job);
+    } else if (job.type === "format") {
+      await this.processFormat(job);
+    } else if (job.type === "trim") {
+      await this.processTrim(job);
+    } else if (job.type === "crop") {
+      await this.processCrop(job);
     }
   }
 
@@ -129,14 +145,11 @@ class JobQueue {
       const updatedVideo = DB.videos.find(
         (video) => video.videoId === job.videoId
       );
-      updatedVideo.crops[job.uniqueFileName] = { processing: false };
+      updatedVideo.crops[job.uniqueFileName].processing = false;
       DB.save();
     } catch (error) {
       console.log(error);
       util.deleteFile(targetVideoPath);
-    } finally {
-      this.currentJob = null;
-      this.executeNext();
     }
   }
 
