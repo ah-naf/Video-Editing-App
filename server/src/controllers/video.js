@@ -18,8 +18,8 @@ if (cluster.isPrimary) {
 }
 
 const sendJobToPrimary = (job) => {
-  if (cluster.isWorker) {
-    process.send({ type: "enqueueJob", job });
+  if (!cluster.isPrimary) {
+    process.send({ type: "enqueue-job", job });
   } else {
     jobs.enqueue(job);
   }
@@ -512,7 +512,7 @@ const controllers = {
   deleteFormat,
   trimVideo,
   deleteTrim,
-  deleteCrop
+  deleteCrop,
 };
 
 module.exports = controllers;

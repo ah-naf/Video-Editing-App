@@ -4,7 +4,6 @@ const FF = {};
 
 FF.makeThumbnail = (fullPath, thumbnailPath) => {
   return new Promise((resolve, reject) => {
-    console.log(fullPath, thumbnailPath);
     const ffmpeg = spawn("ffmpeg", [
       "-i",
       fullPath,

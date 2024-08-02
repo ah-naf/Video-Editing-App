@@ -132,6 +132,11 @@ function VideoList() {
                     onClick={() => setCropModal(video.videoId)}
                   >
                     Crop
+                    {video.crops && (
+                      <span className="ml-1 bg-white rounded-full w-4  text-center !text-xs text-gray-700 font-semibold">
+                        {Object.keys(video.crops).length}
+                      </span>
+                    )}
                   </Button>
                   <Button
                     variant="contained"
