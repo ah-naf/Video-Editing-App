@@ -141,9 +141,25 @@ FF.crop = (originalVideoPath, targetVideoPath, option) => {
   });
 };
 
-FF.changeFormat = (originalVideoPath, targetVideoPath) => {
+FF.changeFormat = (originalVideoPath, targetVideoPath, dimensions) => {
   return new Promise((resolve, reject) => {
-    const ffmpeg = spawn("ffmpeg", ["-i", originalVideoPath, targetVideoPath]);
+    let ffmpeg;
+    if (targetVideoPath.split(".").pop().toLowerCase() === "gif") {
+      ffmpeg = spawn("ffmpeg", [
+        "-i",
+        originalVideoPath,
+        "-vf",
+        `scale=750:-1`, // Adjust output size based on options
+        "-r",
+        "15", // Adjust frame rate as needed
+        "-loop",
+        "0",
+        "-y",
+        targetVideoPath,
+      ]);
+    } else {
+      ffmpeg = spawn("ffmpeg", ["-i", originalVideoPath, targetVideoPath]);
+    }
 
     ffmpeg.on("close", (code) => {
       if (code === 0) resolve();

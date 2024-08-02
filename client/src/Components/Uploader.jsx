@@ -26,23 +26,19 @@ function Uploader() {
   const handleDragOver = (e) => {
     e.preventDefault();
     e.stopPropagation();
-
     setIsDraggedOver(true);
   };
 
   const handleDragLeave = (e) => {
     e.preventDefault();
     e.stopPropagation();
-
     setIsDraggedOver(false);
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
-
     setIsDraggedOver(false);
-
     setFileName(e.dataTransfer.files[0].name);
     setFile(e.dataTransfer.files[0]);
     e.dataTransfer.clearData();
@@ -52,10 +48,10 @@ function Uploader() {
     setIsUploading(false);
     setProcessing(false);
     setFileName("");
-    setProgress(0);
-    setFile(null);
-
     if (cancel) cancel();
+    setTimeout(() => {
+      setProgress(0);
+    }, 100);
   };
 
   const onInputFileChange = (e) => {
@@ -66,9 +62,7 @@ function Uploader() {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-
     setIsUploading(true);
-
     try {
       /** @API call */
       const { data } = await axios.post(
@@ -94,7 +88,6 @@ function Uploader() {
         fetchVideos();
       }
     } catch (e) {
-      // console.log(e.response.data);
       if (e.response && e.response.data.error)
         showMessage(e.response.data.error, "error");
     } finally {
@@ -109,7 +102,6 @@ function Uploader() {
         setSuccessMsg("");
       }, 2500);
     }
-
     if (status === "error") {
       setErrorMsg(message);
       setTimeout(() => {
@@ -194,17 +186,19 @@ function Uploader() {
               Uploading <strong className="text-gray-800"> {fileName}</strong>
               <button
                 className="bg-red-400 text-white p-2 px-4 rounded font-bold ml-2"
-                type="submit"
+                type="button"
                 onClick={cancelUploading}
               >
                 Cancel
               </button>
             </div>
           )}
-          <div
-            className="absolute left-0 bg-emerald-300/40 w-full h-full transition-[width] duration-300"
-            style={{ width: progress + "%" }}
-          ></div>
+          {!!progress && (
+            <div
+              className="absolute left-0 bg-emerald-300/40 w-full h-full transition-[width] duration-300"
+              style={{ width: progress + "%" }}
+            ></div>
+          )}
         </>
       )}
     </form>

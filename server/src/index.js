@@ -1,9 +1,16 @@
 const NodeRoute = require("@ah_naf/noderoute");
 const cors = require("cors"); // Import the cors package
 const path = require("path");
+const fs = require('fs')
 const ApiRoute = require("./router");
 const { serverIndex } = require("./middleware");
 const PORT = 8060;
+
+const storageDir = path.join(__dirname, "../storage");
+if (!fs.existsSync(storageDir)) {
+  fs.mkdirSync(storageDir, { recursive: true });
+}
+
 const server = new NodeRoute();
 
 server.use(

@@ -4,6 +4,10 @@
 
 The Video Editing App is a web application that allows users to upload, edit, and process videos using various editing features. The frontend is built with React, and the backend is powered by NodeRoute, a lightweight HTTP server framework for Node.js. The backend utilizes FFmpeg for video processing and supports clustering to handle multiple requests efficiently.
 
+## Demo
+
+![Demo](./demo.gif)
+
 ## Key Features
 
 1. **Video Upload**: Upload videos to the server for processing.
@@ -36,61 +40,60 @@ The frontend is built with React and provides an intuitive user interface for up
 
 1. **Clone the Repository**:
 
-    ```bash
-    git clone <repository-url>
-    cd video-editing-app
-    ```
+   ```bash
+   git clone <repository-url>
+   cd video-editing-app
+   ```
 
 2. **Install Backend Dependencies**:
 
-    ```bash
-    cd server
-    npm install
-    ```
+   ```bash
+   cd server
+   npm install
+   ```
 
 3. **Install Frontend Dependencies**:
 
-    ```bash
-    cd client
-    npm install
-    ```
+   ```bash
+   cd client
+   npm install
+   ```
 
 4. **Start the Frontend**:
 
-    ```bash
-    npm run dev
-    ```
+   ```bash
+   npm run dev
+   ```
 
 5. **Start the Backend**:
 
-    ```bash
-    cd ../server
-    node index.js
-    ```
+   ```bash
+   cd ../server
+   node index.js
+   ```
 
 6. **Access the App**:
 
-    Open your browser and navigate to `http://localhost:3000`.
+   Open your browser and navigate to `http://localhost:5173`.
 
 ### Running with Docker
 
 1. **Clone the Repository**:
 
-    ```bash
-    git clone <repository-url>
-    cd video-editing-app
-    ```
+   ```bash
+   git clone <repository-url>
+   cd video-editing-app
+   ```
 
 2. **Build and Run the Docker Containers**:
 
-    ```bash
-    docker-compose up --build
-    ```
+   ```bash
+   docker-compose up --build
+   ```
 
 3. **Access the App**:
 
-    Open your browser and navigate to `http://localhost:5173`.
-
+   Open your browser and navigate to `http://localhost:5173`.
 
 ## Contributing
 

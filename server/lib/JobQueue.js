@@ -201,7 +201,11 @@ class JobQueue {
 
     try {
       console.log(`Changing format of ${videoName}`);
-      await FF.changeFormat(originalVideoPath, targetVideoPath);
+      await FF.changeFormat(
+        originalVideoPath,
+        targetVideoPath,
+        video.dimensions
+      );
       console.log(`Finished changing format of ${videoName}`);
       DB.update();
       const updatedVideo = DB.videos.find(

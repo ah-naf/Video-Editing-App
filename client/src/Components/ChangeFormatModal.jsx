@@ -149,7 +149,7 @@ function ChangeFormatModal({ videoId, handleClose }) {
               <option value="">Select a format</option>
               <option value="mp4">mp4</option>
               <option value="avi">avi</option>
-              <option value="3gp">3gp</option>
+              <option value="gif">gif</option>
               <option value="mov">mov</option>
               <option value="mkv">mkv</option>
             </select>
