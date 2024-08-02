@@ -4,8 +4,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon src/index.js --ignore ./public",
-    "cluster": "nodemon src/cluster.js --ignore ./public"
+    "start": "npx nodemon src/index.js --ignore ./public",
+    "cluster": "npx nodemon src/cluster.js --ignore ./public"
   },
   "keywords": [],
   "author": "",
@@ -14,5 +14,8 @@
   "dependencies": {
     "@ah_naf/noderoute": "^2.0.0",
     "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
   }
 }
