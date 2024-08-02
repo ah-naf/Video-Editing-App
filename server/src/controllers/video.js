@@ -9,7 +9,7 @@ const cluster = require("node:cluster");
 
 let jobs;
 
-if (cluster.isMaster) {
+if (cluster.isPrimary) {
   const JobQueue = require("../../lib/JobQueue");
   jobs = new JobQueue();
 } else {
@@ -17,7 +17,7 @@ if (cluster.isMaster) {
 }
 
 const sendJobToMaster = (job) => {
-  if (!cluster.isMaster) {
+  if (!cluster.isPrimary) {
     process.send({ type: "enqueue-job", job });
   } else {
     jobs.enqueue(job);

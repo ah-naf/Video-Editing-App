@@ -2,7 +2,7 @@ const cluster = require("node:cluster");
 const os = require("os");
 const JobQueue = require("../lib/JobQueue");
 
-if (cluster.isMaster) {
+if (cluster.isPrimary) {
   const jobQueue = new JobQueue();
   const coreCount = os.cpus().length;
 

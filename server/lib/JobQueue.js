@@ -76,7 +76,7 @@ class JobQueue {
   enqueue(job) {
     if (job) {
       this.jobs.push(job);
-      if (cluster.isMaster) {
+      if (cluster.isPrimary) {
         this.executeNext();
       }
     }
@@ -89,12 +89,13 @@ class JobQueue {
   executeNext() {
     if (this.currentJob) return;
     this.currentJob = this.dequeue();
+    console.log(this.currentJob);
     if (!this.currentJob) return;
     this.execute(this.currentJob);
   }
 
   async execute(job) {
-    if (cluster.isMaster) {
+    if (cluster.isPrimary) {
       this.executeInWorker(job);
     } else {
       await this.processJob(job);
@@ -109,18 +110,28 @@ class JobQueue {
     if (availableWorker) {
       availableWorker.isIdle = false;
       availableWorker.send({ type: "job", job });
+    } else {
+      // Execute it main core
+      this.processJob(job);
     }
   }
 
   async processJob(job) {
-    if (job.type === "resize") {
-      await this.processResize(job);
-    } else if (job.type === "format") {
-      await this.processFormat(job);
-    } else if (job.type === "trim") {
-      await this.processTrim(job);
-    } else if (job.type === "crop") {
-      await this.processCrop(job);
+    try {
+      if (job.type === "resize") {
+        await this.processResize(job);
+      } else if (job.type === "format") {
+        await this.processFormat(job);
+      } else if (job.type === "trim") {
+        await this.processTrim(job);
+      } else if (job.type === "crop") {
+        await this.processCrop(job);
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      this.currentJob = null;
+      this.executeNext();
     }
   }
 
