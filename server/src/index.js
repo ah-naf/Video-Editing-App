@@ -1,7 +1,7 @@
 const NodeRoute = require("@ah_naf/noderoute");
 const cors = require("cors"); // Import the cors package
 const path = require("path");
-const fs = require('fs')
+const fs = require("fs");
 const ApiRoute = require("./router");
 const { serverIndex } = require("./middleware");
 const PORT = 8060;
@@ -11,7 +11,7 @@ if (!fs.existsSync(storageDir)) {
   fs.mkdirSync(storageDir, { recursive: true });
 }
 
-const server = new NodeRoute();
+const server = new NodeRoute({ timeout: 1000 * 60 * 60 });
 
 server.use(
   cors({
@@ -24,8 +24,6 @@ server.use(serverIndex);
 
 const HomeRoute = server.route("/");
 HomeRoute.sendStatic("./public");
-
-
 
 // --------- API ROUTE ----------- //
 ApiRoute(server);

@@ -12,7 +12,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@ah_naf/noderoute": "^2.0.0",
+    "@ah_naf/noderoute": "^2.2.0",
     "cors": "^2.8.5"
   },
   "devDependencies": {

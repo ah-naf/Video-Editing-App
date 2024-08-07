@@ -1,13 +1,53 @@
 const DB = require("../src/DB");
-const FF = require("./FF");
-const util = require("./util");
-const cluster = require("node:cluster");
+const { Worker } = require("worker_threads");
+const path = require("path");
+const os = require("os");
 
 class JobQueue {
   constructor() {
     this.jobs = [];
-    this.currentJob = null;
+    this.currentJobs = new Set();
+    this.workerPool = [];
+    this.maxWorkers = Math.min(4, os.cpus().length); // Set based on number of CPU cores
+    this.workerAvailability = new Map();
+
+    this.initWorkerPool();
     this.populateJobs();
+    this.logWorkerStatusInterval();
+  }
+
+  initWorkerPool() {
+    for (let i = 0; i < this.maxWorkers; i++) {
+      this.createWorker();
+    }
+  }
+
+  createWorker() {
+    const worker = new Worker(path.resolve(__dirname, "./worker.js"));
+
+    worker.on("message", (result) => {
+      console.log(`Job ${result.jobId} completed by Worker ${worker.threadId}`);
+      this.currentJobs.delete(result.jobId);
+      this.workerAvailability.set(worker, true);
+      this.assignJobToWorker(worker);
+    });
+
+    worker.on("error", (error) => {
+      console.error(`Error in worker: ${error.message}`);
+      this.workerPool = this.workerPool.filter((w) => w !== worker);
+      this.createWorker();
+    });
+
+    worker.on("exit", (code) => {
+      if (code !== 0) {
+        console.error(`Worker stopped with exit code ${code}`);
+      }
+      this.workerPool = this.workerPool.filter((w) => w !== worker);
+      this.createWorker();
+    });
+
+    this.workerPool.push(worker);
+    this.workerAvailability.set(worker, true);
   }
 
   populateJobs() {
@@ -74,181 +114,53 @@ class JobQueue {
   }
 
   enqueue(job) {
-    if (job) {
-      this.jobs.push(job);
-      if (cluster.isPrimary) {
-        this.executeNext();
-      }
-    }
+    this.jobs.push(job);
+    this.assignJobs();
   }
 
   dequeue() {
     return this.jobs.shift();
   }
 
-  executeNext() {
-    if (this.currentJob) return;
-    this.currentJob = this.dequeue();
-    console.log(this.currentJob);
-    if (!this.currentJob) return;
-    this.execute(this.currentJob);
-  }
-
-  async execute(job) {
-    if (cluster.isPrimary) {
-      this.executeInWorker(job);
-    } else {
-      await this.processJob(job);
-      process.send({ type: "job-complete" });
-    }
-  }
-
-  executeInWorker(job) {
-    const availableWorker = Object.values(cluster.workers).find(
-      (worker) => worker.isIdle
-    );
-    if (availableWorker) {
-      availableWorker.isIdle = false;
-      availableWorker.send({ type: "job", job });
-    } else {
-      // Execute it main core
-      this.processJob(job);
-    }
-  }
-
-  async processJob(job) {
-    try {
-      if (job.type === "resize") {
-        await this.processResize(job);
-      } else if (job.type === "format") {
-        await this.processFormat(job);
-      } else if (job.type === "trim") {
-        await this.processTrim(job);
-      } else if (job.type === "crop") {
-        await this.processCrop(job);
+  assignJobs() {
+    this.workerPool.forEach((worker) => {
+      if (this.workerAvailability.get(worker)) {
+        this.assignJobToWorker(worker);
       }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      this.currentJob = null;
-      this.executeNext();
+    });
+  }
+
+  assignJobToWorker(worker) {
+    const job = this.dequeue();
+    if (job) {
+      this.workerAvailability.set(worker, false);
+      worker.postMessage(job);
+      this.currentJobs.add(job.videoId);
+      console.log(
+        `Assigned job ${job.videoId} (${job.type}) to Worker ${
+          worker.threadId
+        } at ${new Date().toISOString()}`
+      );
+    } else {
+      this.workerAvailability.set(worker, true);
     }
   }
 
-  async processCrop(job) {
-    DB.update();
-    const video = DB.videos.find((video) => video.videoId === job.videoId);
-    const originalVideoPath = `storage/${video.videoId}/original.${video.extension}`;
-    const targetVideoPath = `storage/${video.videoId}/${job.uniqueFileName}.${video.extension}`;
-    util.deleteFile(targetVideoPath);
-
-    try {
-      console.log("Cropping " + job.uniqueFileName);
-      await FF.crop(originalVideoPath, targetVideoPath, {
-        width: job.width,
-        height: job.height,
-        x: job.x,
-        y: job.y,
-      });
-
-      console.log("Finished cropping " + job.uniqueFileName);
-      DB.update();
-      const updatedVideo = DB.videos.find(
-        (video) => video.videoId === job.videoId
-      );
-      updatedVideo.crops[job.uniqueFileName].processing = false;
-      DB.save();
-    } catch (error) {
-      console.log(error);
-      util.deleteFile(targetVideoPath);
-    }
+  logWorkerStatusInterval() {
+    setInterval(() => {
+      this.logWorkerStatus();
+    }, 5000);
   }
 
-  async processResize(job) {
-    DB.update();
-    const video = DB.videos.find((video) => video.videoId === job.videoId);
-    const videoName = video.name;
-    const originalVideoPath = `./storage/${video.videoId}/original.${video.extension}`;
-    const targetVideoPath = `./storage/${video.videoId}/${job.width}x${job.height}.${video.extension}`;
-
-    try {
-      console.log(`Resizing ${videoName}`);
-      await FF.resize(
-        originalVideoPath,
-        targetVideoPath,
-        job.width,
-        job.height
+  logWorkerStatus() {
+    console.log("Worker status:");
+    this.workerPool.forEach((worker, index) => {
+      console.log(
+        `Worker ${index + 1} (Thread ID: ${worker.threadId}): ${
+          this.workerAvailability.get(worker) ? "Available" : "Busy"
+        } at ${new Date().toISOString()}`
       );
-      console.log(`Finished resizing ${videoName}`);
-      DB.update();
-      const updatedVideo = DB.videos.find(
-        (video) => video.videoId === job.videoId
-      );
-      updatedVideo.resizes[`${job.width}x${job.height}`].processing = false;
-      DB.save();
-    } catch (error) {
-      console.log(error);
-      util.deleteFile(targetVideoPath);
-    }
-  }
-
-  async processFormat(job) {
-    DB.update();
-    const video = DB.videos.find((video) => video.videoId === job.videoId);
-    const videoName = video.name;
-    const originalVideoPath = `./storage/${video.videoId}/original.${video.extension}`;
-    const targetVideoPath = `./storage/${video.videoId}/original.${job.format}`;
-
-    try {
-      console.log(`Changing format of ${videoName}`);
-      await FF.changeFormat(
-        originalVideoPath,
-        targetVideoPath,
-        video.dimensions
-      );
-      console.log(`Finished changing format of ${videoName}`);
-      DB.update();
-      const updatedVideo = DB.videos.find(
-        (video) => video.videoId === job.videoId
-      );
-      updatedVideo.formats[job.format].processing = false;
-      DB.save();
-    } catch (error) {
-      console.log(error);
-      util.deleteFile(targetVideoPath);
-    }
-  }
-
-  async processTrim(job) {
-    DB.update();
-    const video = DB.videos.find((video) => video.videoId === job.videoId);
-    const timestamp = job.timestamp;
-    const uniqueFileName = `${job.startTime.replace(
-      /:/g,
-      ""
-    )}-${job.endTime.replace(/:/g, "")}_${timestamp}`;
-    const originalVideoPath = `storage/${video.videoId}/original.${video.extension}`;
-    const targetVideoPath = `storage/${video.videoId}/${uniqueFileName}.${video.extension}`;
-
-    try {
-      console.log(`Trimming video ${uniqueFileName}`);
-      await FF.trimVideo(
-        originalVideoPath,
-        targetVideoPath,
-        job.startTime,
-        job.endTime
-      );
-      console.log(`Finished trimming video ${uniqueFileName}`);
-      DB.update();
-      const updatedVideo = DB.videos.find(
-        (video) => video.videoId === job.videoId
-      );
-      updatedVideo.trims[uniqueFileName].processing = false;
-      DB.save();
-    } catch (error) {
-      console.log(error);
-      util.deleteFile(targetVideoPath);
-    }
+    });
   }
 }
 

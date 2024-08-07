@@ -7,21 +7,11 @@ const DB = require("../DB");
 const FF = require("../../lib/FF");
 const cluster = require("node:cluster");
 
-let jobs;
-
-if (cluster.isPrimary) {
-  const JobQueue = require("../../lib/JobQueue");
-  jobs = new JobQueue();
-} else {
-  jobs = null;
-}
+const JobQueue = require("../../lib/JobQueue");
+const jobs = new JobQueue();
 
 const sendJobToMaster = (job) => {
-  if (!cluster.isPrimary) {
-    process.send({ type: "enqueue-job", job });
-  } else {
-    jobs.enqueue(job);
-  }
+  jobs.enqueue(job);
 };
 
 const getVideos = (req, res) => {
@@ -94,8 +84,9 @@ const uploadVideo = async (req, res) => {
     console.log(e);
     // Delete the whole folder
     util.deleteFolder(`./storage/${videoId}`);
-    if (e.code !== "ECONNRESET")
+    if (e.code !== "ECONNRESET") {
       return res.status(500).json({ message: e.message });
+    }
   }
 };
 
