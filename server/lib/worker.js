@@ -123,7 +123,7 @@ const processJob = async (job) => {
   } finally {
     parentPort.postMessage({ jobId: job.videoId });
     console.log(
-      `Worker ${process.threadId} completed job ${job.videoId} (${
+      `Worker ${threadId} completed job ${job.videoId} (${
         job.type
       }) at ${new Date().toISOString()}`
     );
